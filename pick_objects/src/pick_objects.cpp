@@ -1,6 +1,8 @@
 #include <ros/ros.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include "nav_msgs/Odometry.h"
+#include "std_msgs/String.h"
 
 // Define a client for to send goal requests to the move_base server through a SimpleActionClient
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -8,6 +10,15 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 int main(int argc, char** argv){
   // Initialize the simple_navigation_goals node
   ros::init(argc, argv, "pick_objects");
+  ros::NodeHandle n;
+  ros::Publisher status_pub = n.advertise<std_msgs::String>("status", 1000);
+  ros::Rate loop_rate(1);
+  std_msgs::String msg;
+  
+  //publish status
+  msg.data = "START";
+  status_pub.publish(msg);
+  ros::spinOnce();
 
   //tell the action client that we want to spin a thread by default
   MoveBaseClient ac("move_base", true);
@@ -27,8 +38,13 @@ int main(int argc, char** argv){
   goal.target_pose.pose.position.x = 4.0;
   goal.target_pose.pose.position.y = 8.0;
   goal.target_pose.pose.orientation.w = 1.0;
-
-   // Send the pickup location to the robot
+  
+  //update status
+  msg.data = "MOVE: PICKUP";
+  status_pub.publish(msg);
+  ros::spinOnce();
+  
+  // Send the pickup location to the robot
   ROS_INFO("Sending pickup location...");
   ac.sendGoal(goal);
 
@@ -41,6 +57,11 @@ int main(int argc, char** argv){
   else
     ROS_INFO("Robot failed to arrive at pickup location");
   
+  //update status
+  msg.data = "PICKUP";
+  status_pub.publish(msg);
+  ros::spinOnce();
+  
   sleep(5);
   
   goal.target_pose.header.stamp = ros::Time::now();
@@ -49,8 +70,13 @@ int main(int argc, char** argv){
   goal.target_pose.pose.position.x = -4.0;
   goal.target_pose.pose.position.y = 3.0;
   goal.target_pose.pose.orientation.w = 1.0;
-
-   // Send the drop-off location to the robot
+  
+  //update status
+  msg.data = "MOVE: DROP";
+  status_pub.publish(msg);
+  ros::spinOnce();
+  
+  // Send the drop-off location to the robot
   ROS_INFO("Sending drop-off location...");
   ac.sendGoal(goal);
 
@@ -62,6 +88,11 @@ int main(int argc, char** argv){
     ROS_INFO("Robot arrived at drop-off location");
   else
     ROS_INFO("Robot failed to arrive at drop-off location");
-
+  
+  //update status
+  msg.data = "DROP";
+  status_pub.publish(msg);
+  ros::spin();
+  
   return 0;
 }
